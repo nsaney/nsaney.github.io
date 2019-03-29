@@ -1,13 +1,232 @@
 <!DOCTYPE html>
 <html lang="us">
 <head>
-  <meta charset="UTF-8"/>
-  <script src="https://code.jquery.com/jquery-3.3.1.min.js" crossorigin="anonymous"></script>
+    <title>FlowJo Comp CSV to MTX</title>
+    <meta charset="UTF-8"/>
+    <!-- bootstrap setup; see https://getbootstrap.com/docs/4.3/getting-started/introduction/ -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <!-- styles -->
+    <style>
+        body {
+            margin: 0 auto;
+            width: 90%;
+        }
+        input[type=file] {
+            height: 10em;
+            width: 100%;
+            border: 2px dashed red;
+        }
+        #textarea_inputCsv, #pre_outputText {
+            width: 100%;
+            height: 20em;
+            max-height: 20em;
+            font-family: monospace;
+            white-space: pre;
+            padding: 5px;
+            resize: none;
+        }
+    </style>
 </head>
 <body>
-  <iframe id='iframe0'></iframe>
-  <script>
-    var get = $.get("https://raw.githubusercontent.com/nsaney/flowjo-csv-to-mtx/master/src/flowjo-csv-to-mtx.html");
-  </script>
+    <div class="container">
+        <h1>FlowJo CSV ----> MTX</h1>
+        <div class="container">
+            <h2>Necessary Details</h2>
+            <div class="row">
+                <label for="input_filename" class="col-3">Name of Output MTX File</label>
+                <input id="input_filename" type="text" class="col-9 form-control" value="NameOfOutputMtxFile">
+            </div>
+            <div class="row">
+                <label for="input_flowjoVersion" class="col-3">FlowJo Version</label>
+                <input id="input_flowjoVersion" type="text" class="col-9 form-control" value="10.5.3">
+            </div>
+            <div class="row">
+                <label for="input_uuid" class="col-3">Mysterious UUID</label>
+                <input id="input_uuid" type="text" class="col-9 form-control" value="00000000-0000-0000-0000-000000000000">
+            </div>
+            <hr/>
+            <h2>
+                <label for="input_csvFile">
+                    Drag CSV File Below
+                </label>
+            </h2>
+            <div class="text-center">
+                <input type="file" id="input_csvFile" class="form-control-file" />
+            </div>
+            <h2>
+                <label for="textarea_inputCsv">
+                    OR: Paste CSV Below
+                </label>
+            </h2>
+            <div class="text-center">
+                <textarea id="textarea_inputCsv" class="bg-warning"></textarea>
+            </div>
+            <hr/>
+            <div>
+                <button id="button_convert" class="btn btn-primary btn-lg" type="button">
+                    Press This Button To Download The MTX Version
+                </button>
+            </div>
+            <hr/>
+            <h2>Also, The MTX File Text Will Show Up Below</h2>
+            <div class="bg-info">
+                <pre id="pre_outputText">This will have the text to save.</pre>
+            </div>
+            <hr/>
+            <div style="display:none;">
+                <a href="#" id="anchor_downloadFile"></a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+$(function () {
+
+    var textarea_inputCsv = $('#textarea_inputCsv');
+    var input_csvFile = $('#input_csvFile');
+    var input_filename = $('#input_filename');
+    var input_flowjoVersion = $('#input_flowjoVersion');
+    var input_uuid = $('#input_uuid');
+    var button_convert = $('#button_convert');
+    var pre_outputText = $('#pre_outputText');
+    var anchor_downloadFile = $('#anchor_downloadFile');
+
+    input_csvFile.on('change', onFileUpload);
+    button_convert.on('click', doConvert);
+
+
+    function onFileUpload() {
+        var reader = new FileReader();
+        reader.onload = function reader_onload(event) {
+            textarea_inputCsv.val(event.target.result);
+        };
+        reader.onerror = function reader_onerror(error) {
+            alert(error);
+        };
+        reader.readAsText(input_csvFile[0].files[0]);
+    }
+
+
+    var indent = 0;
+    var startOfLine = false;
+
+    function repeat(text, count) {
+        var result = '';
+        for (var i = 0; i < count; ++i) {
+            result += text;
+        }
+        return result;
+    }
+
+    function clear() {
+        pre_outputText.text('');
+    }
+
+    function print(text) {
+        if (startOfLine) {
+            startOfLine = false;
+            print(repeat('  ', indent));
+        }
+        pre_outputText.text(pre_outputText.text() + text);
+    }
+
+    function println(text) {
+        print(text + '\n');
+        startOfLine = true;
+    }
+
+    function doConvert() {
+        convertCsvToMtx();
+        startDownload();
+    }
+
+    function convertCsvToMtx() {
+        clear();
+        var csvText = textarea_inputCsv.val();
+        var csvTextLines = csvText.split('\n');
+        var lineCount = csvTextLines.length;
+        console.log('line count: ' + lineCount);
+        if (lineCount < 2) {
+            clear();
+            println('Not enough lines in input: ' + lineCount);
+        }
+        var headerText = csvTextLines[0];
+        var header = headerText.split(',');
+        var parameterNamesByColumn = header.slice(1);
+
+        var parameterNamesByRow = [];
+        var valuesByColumnByRow = [];
+
+        var i;
+        for (i = 1; i < lineCount; ++i) {
+            var rowText = csvTextLines[i];
+            if (!rowText || !rowText.trim()) { continue; }
+            var row = rowText.split(',');
+            var parameterName = row[0];
+            parameterNamesByRow.push(parameterName);
+            var valuesByColumn = row.slice(1);
+            valuesByColumnByRow.push(valuesByColumn);
+        }
+
+        // Start Output
+        indent = 0;
+        println('<?xml version="1.0" encoding="UTF-8"?>');
+        ++indent;
+        println('<gating:gatingML>');
+        ++indent;
+        print('<transforms:spilloverMatrix prefix="Comp-"  name="');
+        print(input_filename.val());
+        print('"  editable="0"  color="#bc1900"  version="FlowJo-');
+        print(input_flowjoVersion.val());
+        print('"  status="FINALIZED"  transforms:id="');
+        print(input_uuid.val());
+        println('"  suffix="" >');
+        ++indent;
+        println('<data-type:parameters>');
+        ++indent;
+        $.each(parameterNamesByColumn, function (colNum, parameterName) {
+            print('<data-type:parameter data-type:name="');
+            print(parameterName);
+            println('" />');
+        });
+        --indent;
+        println('</data-type:parameters>');
+        $.each(valuesByColumnByRow, function (rowNum, valuesByColumn) {
+            var parameterName = parameterNamesByRow[rowNum];
+            print('<transforms:spillover data-type:parameter="');
+            print(parameterName);
+            println('" >');
+            ++indent;
+            $.each(valuesByColumn, function (colNum, value) {
+                var coParameterName = parameterNamesByColumn[colNum];
+                print('<transforms:coefficient data-type:parameter="');
+                print(coParameterName);
+                print('"  transforms:value="');
+                print(value);
+                println('" />');
+            });
+            --indent;
+            println('</transforms:spillover>');
+        });
+        --indent;
+        println('</transforms:spilloverMatrix>');
+        --indent;
+        println('</gating:gatingML>');
+    }
+
+    function startDownload() {
+        var header = 'data:application/octet-stream;charset=utf-8,';
+        var mtxFileText = encodeURIComponent(pre_outputText.text());
+        var mtxFilename = input_filename.val();
+        anchor_downloadFile.attr('href', header + mtxFileText);
+        anchor_downloadFile.attr('download', mtxFilename + '.mtx');
+        anchor_downloadFile[0].click();
+    }
+
+});
+    </script>
 </body>
 </html>
