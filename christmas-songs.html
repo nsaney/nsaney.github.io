@@ -3,8 +3,18 @@
 <head>
   <title>Christmas Songs</title>
   <style>
-    body {
+    body * {
       font-family: monospace;
+    }
+    h2 {
+      margin-top: 1em;
+      margin-bottom: 0;
+    }
+    .buttons {
+      margin-bottom: 0.5em;
+    }
+    .buttons button {
+      margin: 0 0.25em;
     }
   </style>
 </head>
@@ -157,12 +167,16 @@ We Wish You a Merry Christmas
 :::: I IV :: ii V :: vi IV :: V7 I
 :::: I V :: IV I :: vi I :: V7 I
 `;
-    const supportedKeys = ['C', 'G', 'D', 'A']
-
-    // TODO: figure out accidentals
     const numbersByNumeral = {'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5, 'VI': 6, 'VII': 7}
-    const notesInKeyCByNumberMod7 = ['B', 'C', 'D', 'E', 'F', 'G', 'A']
-    const numberByNoteInKeyC = {'C': 1, 'D': 2, 'E': 3, 'F': 4, 'G': 5, 'A': 6, 'B': 7}
+    const noteByNumberMod7ByKey = {
+      'G':  ['F#', 'G',  'A',  'B',  'C',  'D',  'E'],
+      'Em': ['D',  'E',  'F#', 'G',  'A',  'B',  'C'],
+      'D':  ['C#', 'D',  'E',  'F#', 'G',  'A',  'B'],
+      'C':  ['B',  'C',  'D',  'E',  'F',  'G',  'A'],
+      'Am': ['G',  'A',  'B',  'C',  'D',  'E',  'F'],
+    }
+    const supportedMajorKeys = Object.keys(noteByNumberMod7ByKey).filter(key => !key.endsWith('m'))
+    const supportedMinorKeys = Object.keys(noteByNumberMod7ByKey).filter(key => key.endsWith('m'))
 
     function element(tagName, classes, text) {
       if (text === undefined) {
@@ -200,6 +214,24 @@ We Wish You a Merry Christmas
         div_song.appendChild(h2_title)
         const div_buttons = element('div', 'buttons', null)
         div_song.appendChild(div_buttons)
+        let hasChords = false
+        let isMajor = false
+        for (const songLine of songTextLines) {
+          const div_songLine = element('div', 'line', null)
+          div_songLine.dataset.originalText = songLine
+          if (songLine.match('[0-9]--[0-9]')) {
+            div_songLine.classList.add('notes')
+          }
+          else if (songLine.match('^[^ ]*::::')) {
+            div_songLine.classList.add('chords')
+            hasChords = true
+            if (songLine.match(' I ')) {
+              isMajor = true
+            }
+          }
+          div_song.appendChild(div_songLine)
+        }
+        const supportedKeys = isMajor ? supportedMajorKeys : hasChords ? supportedMinorKeys : []
         const button_resetKey = element('button', 'reset')
         button_resetKey.addEventListener('click', () => setKeyForSong(index, null))
         div_buttons.appendChild(button_resetKey)
@@ -209,17 +241,6 @@ We Wish You a Merry Christmas
             setKeyForSong(index, key)
           })
           div_buttons.appendChild(button_key)
-        }
-        for (const songLine of songTextLines) {
-          const div_songLine = element('div', 'line', null)
-          div_songLine.dataset.originalText = songLine
-          if (songLine.match('[0-9]--[0-9]')) {
-            div_songLine.classList.add('notes')
-          }
-          else if (songLine.match('^[^ ]*::::')) {
-            div_songLine.classList.add('chords')
-          }
-          div_song.appendChild(div_songLine)
         }
         setKeyForSong(index, null)
       }
@@ -245,22 +266,15 @@ We Wish You a Merry Christmas
         div_notesLine.innerText = div_notesLine.dataset.originalText
         return
       }
-      if (!supportedKeys.includes(key)) {
-        div_notesLine.innerText = 'unsupported key: ' + key
-        return
-      }
-      const keyNumber = numberByNoteInKeyC[key];
-      const transposeAmount = keyNumber - 1
       div_notesLine.innerText = div_notesLine.dataset.originalText.replace(/[0-9]+/g, function (match) {
         const fullNumber = parseInt(match)
         let number = fullNumber
         let additionalOctaves = 0
-        while (number > 7) {
+        while (number >= 7) {
           additionalOctaves += 1
           number -= 7
         }
-        const transposedNumber = number + transposeAmount
-        const note = notesInKeyCByNumberMod7[transposedNumber % 7]
+        const note = noteByNumberMod7ByKey[key][number]
         return '^'.repeat(additionalOctaves) + note
       })
     }
@@ -269,17 +283,12 @@ We Wish You a Merry Christmas
         div_chordsLine.innerText = div_chordsLine.dataset.originalText
         return
       }
-      if (!supportedKeys.includes(key)) {
-        div_chordsLine.innerText = 'unsupported key: ' + key
-      }
-      const keyNumber = numberByNoteInKeyC[key];
-      const transposeAmount = keyNumber - 1
       div_chordsLine.innerText = div_chordsLine.dataset.originalText.replace(/(?<![IiVv])([IiVv]+)(?![IiVv])/g, function (match) {
         const numeral = match.toUpperCase()
-        const number = numbersByNumeral[numeral]
+        const number = numbersByNumeral[numeral] % 7
+        const note = noteByNumberMod7ByKey[key][number]
         const isMajor = (numeral === match)
-        // TODO - decode this
-        return '__[' + number + (isMajor ? '' : 'm') + ']__'
+        return note + (isMajor ? '' : 'm')
       })
     }
   </script>
