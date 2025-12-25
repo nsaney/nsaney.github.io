@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Christmas Songs</title>
+  <style>
+    body {
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <script>
+    const allSongsText = `
+Angels from the Realms of Glory
+5--3--8--5--10--9--8--5
+
+Angels We Have Heard on High
+3--3--3--5--5--4--3
+:::: I I IV(add9) I :: I I IV(maj7) I // %%
+:::: I vi ii V :: I IV V V :: I IV I V // %% :::: I
+
+Away in a Manger
+[5]--5--4--3--3--2--1
+:::: I I IV I :::: V V I I
+:::: I I IV I :::: V7 I IV V,I
+
+Emmanuel
+_--5--8--7--6
+:::: I IV V I
+:::: VI ii V I(sus4) :::: I
+
+God Rest Ye Merry Gentlemen
+[1]--1--5--5--4--3--2--1
+:::: i i VI i :: i VI i i // %%
+:::: VI VII :: i iv
+:::: III III :: i iv
+:::: III III :: i
+
+Good Christian Men Rejoice
+[5]--1--2--3--4--5--6--5
+
+Hark the Herald Angels Sing
+5--8--8--7--8--10--10--9
+:::: I I I I :: IV IV I I
+:::: I I I I :: V V V V
+:::: I I IV V :: I I IV V
+:::: vi vi IV V7 :: V I I I
+:::: vi vi IV V7 :: V V I I
+
+It Came upon a Midnight Clear
+[5]--10--7--9--8--7--5--6--5
+:::: I IV I I :: IV IV V V
+:::: I IV I I :: IV V I I
+:::: III III vi vi :: II II V V7
+:::: I IV I I :: IV V I I
+
+Joy to the World
+8--7--6--5--(4--3--2--1)
+:::: I V, I :: I V, I :: IV V :: I I
+:::: I IV, I :: I IV, I
+:::: I V :: ii IV :: I I :: I V, I
+
+O Come All Ye Faithful
+[8]--8--5--8--9--5
+:::: I I V V :: I I V V
+:::: vi vi V V :: V IV V V7
+:::: I I IV I :: V IV V V7
+:::: I I I I :: vi vi IV V
+:::: IV IV V IV :: I V I
+
+O Come O Come Emmanuel
+[1]--3--5--5--5--4--6--5--4--3
+:::: i i iv VII :: III
+:::: i iv VII VII :: i
+:::: iv iv VI VII :: III
+:::: iv i iv VII :: III
+:::: VII VII i i :: iv VII III III
+:::: i iv VII VII :: i
+
+O Holy Night
+3--3--3--5
+
+O Little Town of Bethlehem
+
+Silent Night
+5--6--5--3
+:::: I I I I :: V V I I
+:::: IV IV I I :: IV IV I I
+:::: ii V7 I I :: I V7 I I
+
+The First Noel
+[3--2]--1--2--3--4--5
+
+What Child is This
+[1]--3--4--5
+:::: i III VII v :: i i V V
+:::: i III VII v :: i V i i
+:::: III III VII VII :: i i V V
+:::: III III VII VII :: i V i i
+
+
+------------
+
+Frosty the Snowman
+5--3--4--5--8
+a:::: I I IV I :: IV I V I
+a
+b????
+a
+
+Jingle Bells
+5--10--9--8--5 :::: 3--3--3
+:::: I I :: I IV :: IV V :: V7 I // %%
+:::: I I :: I IV I I :: IV I :: V V // %% [...V7 I]
+
+Let it Snow
+
+O Christmas Tree
+
+Rudolph the Red Nosed Reindeer
+[6--7]--8
+^:::: IV iii ii I :: IV iii ii I :: V V IV V7
+5--6--5--3--8--6--5
+a:a:b:a
+a:::: I I :: I V :: V V :: V I
+b:::: IV I :: IV,V I :: V V :: II7 V7
+
+Santa Claus is Coming to Town
+
+The Holly and the Ivy
+
+Tis the Season to be Jolly
+5--4--3--2--1--2--3--1
+a:a:b:a
+a:::: I I IV I :: IV I V I
+b:::: ii ii I I :: IV IV V V
+
+Twelve Days of Christmas
+[5--5]--5--8--8--8--7
+:::: I I V7 I
+:::: V V %%%%%%%
+5:::: I II V V
+4:::: I I
+3:::: IV IV
+2:::: ii V
+:::: I,IV I,V :: I
+
+Up on the Housetop
+5--5--6--5--3
+a:b:c:b
+a:::: ???
+b:::: ???
+c:::: ???
+
+We Wish You a Merry Christmas
+[5]--8--8--9--8--7--6--6
+:::: I IV :: ii V :: vi IV :: V7 I
+:::: I V :: IV I :: vi I :: V7 I
+`;
+    const supportedKeys = ['C', 'G', 'D', 'A']
+
+    // TODO: figure out accidentals
+    const numbersByNumeral = {'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5, 'VI': 6, 'VII': 7}
+    const notesInKeyCByNumberMod7 = ['B', 'C', 'D', 'E', 'F', 'G', 'A']
+    const numberByNoteInKeyC = {'C': 1, 'D': 2, 'E': 3, 'F': 4, 'G': 5, 'A': 6, 'B': 7}
+
+    function element(tagName, classes, text) {
+      if (text === undefined) {
+        text = classes
+        classes = []
+      }
+      const result = document.createElement(tagName)
+      if (classes) {
+        if (classes.constructor.name !== 'Array') {
+          classes = [classes]
+        }
+        result.classList.add(...classes)
+      }
+      if (text) {
+        result.innerText = text
+      }
+      return result
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const div_main = document.querySelector('#main')
+      const songs = allSongsText.split('\n\n')
+      for (const [index, songTextRaw] of songs.entries()) {
+        const songText = songTextRaw.trim()
+        if (songText.startsWith('---')) {
+          div_main.appendChild(element('hr'))
+          continue
+        }
+        const div_song = element('div')
+        div_song.id = 'song_' + index
+        div_main.appendChild(div_song)
+        const songTextLines = songText.split('\n')
+        const songTitle = songTextLines.shift()
+        const h2_title = element('h2', songTitle)
+        div_song.appendChild(h2_title)
+        const div_buttons = element('div', 'buttons', null)
+        div_song.appendChild(div_buttons)
+        const button_resetKey = element('button', 'reset')
+        button_resetKey.addEventListener('click', () => setKeyForSong(index, null))
+        div_buttons.appendChild(button_resetKey)
+        for (const key of supportedKeys) {
+          const button_key = element('button', 'key-' + key, key)
+          button_key.addEventListener('click', () => {
+            setKeyForSong(index, key)
+          })
+          div_buttons.appendChild(button_key)
+        }
+        for (const songLine of songTextLines) {
+          const div_songLine = element('div', 'line', null)
+          div_songLine.dataset.originalText = songLine
+          if (songLine.match('[0-9]--[0-9]')) {
+            div_songLine.classList.add('notes')
+          }
+          else if (songLine.match('^[^ ]*::::')) {
+            div_songLine.classList.add('chords')
+          }
+          div_song.appendChild(div_songLine)
+        }
+        setKeyForSong(index, null)
+      }
+    })
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelector('#loading').style.display = 'none'
+      document.querySelector('#main').style.display = ''
+    })
+
+    function setKeyForSong(songIndex, key) {
+      const songId = '#song_' + songIndex
+      const notesLines = document.querySelectorAll(songId + ' .line.notes')
+      for (const div_notesLine of notesLines) {
+        setKeyForNotes(div_notesLine, key)
+      }
+      const chordsLines = document.querySelectorAll(songId + ' .line.chords')
+      for (const div_chordsLine of chordsLines) {
+        setKeyForChords(div_chordsLine, key)
+      }
+    }
+    function setKeyForNotes(div_notesLine, key) {
+      if (!key) {
+        div_notesLine.innerText = div_notesLine.dataset.originalText
+        return
+      }
+      if (!supportedKeys.includes(key)) {
+        div_notesLine.innerText = 'unsupported key: ' + key
+        return
+      }
+      const keyNumber = numberByNoteInKeyC[key];
+      const transposeAmount = keyNumber - 1
+      div_notesLine.innerText = div_notesLine.dataset.originalText.replace(/[0-9]+/g, function (match) {
+        const fullNumber = parseInt(match)
+        let number = fullNumber
+        let additionalOctaves = 0
+        while (number > 7) {
+          additionalOctaves += 1
+          number -= 7
+        }
+        const transposedNumber = number + transposeAmount
+        const note = notesInKeyCByNumberMod7[transposedNumber % 7]
+        return '^'.repeat(additionalOctaves) + note
+      })
+    }
+    function setKeyForChords(div_chordsLine, key) {
+      if (!key) {
+        div_chordsLine.innerText = div_chordsLine.dataset.originalText
+        return
+      }
+      if (!supportedKeys.includes(key)) {
+        div_chordsLine.innerText = 'unsupported key: ' + key
+      }
+      const keyNumber = numberByNoteInKeyC[key];
+      const transposeAmount = keyNumber - 1
+      div_chordsLine.innerText = div_chordsLine.dataset.originalText.replace(/(?<![IiVv])([IiVv]+)(?![IiVv])/g, function (match) {
+        const numeral = match.toUpperCase()
+        const number = numbersByNumeral[numeral]
+        const isMajor = (numeral === match)
+        // TODO - decode this
+        return '__[' + number + (isMajor ? '' : 'm') + ']__'
+      })
+    }
+  </script>
+  <div id="loading">
+    Loading...
+  </div>
+  <div id="main" style="display: none"></div>
+</body>
+</html>
